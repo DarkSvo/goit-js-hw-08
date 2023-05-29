@@ -1,45 +1,42 @@
-import throttle from 'lodash.throttle';
-
-let formData = {};
+import throttle from "lodash.throttle";
 
 const refs = {
-  formEl: document.querySelector('.feedback-form'),
-  emailEl: document.querySelector('input'),
-  messageEl: document.querySelector('textarea'),
+    form: document.querySelector('.feedback-form'),
 };
-const STORAGE_KEY = 'feedback-form-state';
-onPageReloadUpdate();
+const FORM_STORAGE_KEY = 'feedback-form-state';
+const formData = {};
 
-refs.formEl.addEventListener('input', throttle(onFormInput, 500));
-refs.formEl.addEventListener('submit', onFormSubmit);
-// console.log(event.target.value);
-// console.log(event.target.name);
+populateFormInput();
 
-function onFormInput(event) {
-  // console.log(event.target.value);
-  // console.log(event.target.name);
-  formData[event.target.name] = event.target.value;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-}
+refs.form.addEventListener('submit', handleSubmit);
+refs.form.addEventListener('input', throttle(addFormInput, 500));
 
-//виводимо дані з LS
-function onPageReloadUpdate() {
-  if (localStorage.getItem(STORAGE_KEY)) {
-    formData = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
-    for (let key in formData) {
-      refs.formEl.elements[key].value = formData[key];
+function handleSubmit(event) {
+    event.preventDefault();
+    const {email, message} = event.currentTarget.elements;
+    if (email.value === '' || message.value === '') {
+        alert('Заполните все поля');
+        return;
     }
+    console.log(formData);
+    event.currentTarget.reset();
+    // localStorage.removeItem(FORM_STORAGE_KEY);
+};
 
-    // console.log(refs.formEl.elements);
-    //form.elements[name]
-  }
-}
+function addFormInput(event) {
+    formData[event.target.name] = event.target.value;
+    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+};
 
-//пишемо умови для сабміту
-function onFormSubmit(event) {
-  event.preventDefault();
-  console.log(formData);
-  refs.formEl.reset();
-  localStorage.removeItem(STORAGE_KEY);
+function populateFormInput() {
+    const formStringValue = localStorage.getItem(FORM_STORAGE_KEY);
+    
+    if (formStringValue) {
+        const formObjectValue = JSON.parse(formStringValue);
+        for (const key in formObjectValue) {
+            formData[key] = formObjectValue[key];
+        }
+        refs.form.elements.email.value = formData.email ? formData['email'] : '';
+        refs.form.elements.message.value = formData.message ? formData['message'] : '';
+    }
 }

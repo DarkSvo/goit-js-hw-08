@@ -1,42 +1,65 @@
-import throttle from "lodash.throttle";
+import throttle from 'lodash.throttle';
 
-const refs = {
-    form: document.querySelector('.feedback-form'),
+const feedbackFormRef = document.querySelector('.feedback-form');
+const { email, message } = feedbackFormRef.elements;
+
+const currentValueOfForm = {};
+const STORAGE_KEY = 'feedback-form-state';
+
+const save = (key, value) => {
+  try {
+    const serializedState = JSON.stringify(value);
+    localStorage.setItem(key, serializedState);
+  } catch (error) {
+    console.error('Set state error: ', error.message);
+  }
 };
-const FORM_STORAGE_KEY = 'feedback-form-state';
-const formData = {};
-
-populateFormInput();
-
-refs.form.addEventListener('submit', handleSubmit);
-refs.form.addEventListener('input', throttle(addFormInput, 500));
-
-function handleSubmit(event) {
-    event.preventDefault();
-    const {email, message} = event.currentTarget.elements;
-    if (email.value === '' || message.value === '') {
-        alert('Заполните все поля');
-        return;
-    }
-    console.log(formData);
-    event.currentTarget.reset();
-    // localStorage.removeItem(FORM_STORAGE_KEY);
-};
-
-function addFormInput(event) {
-    formData[event.target.name] = event.target.value;
-    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+const load = key => {
+  try {
+    const serializedState = localStorage.getItem(key);
+    return serializedState === null ? undefined : JSON.parse(serializedState);
+  } catch (error) {
+    console.error('Get state error: ', error.message);
+  }
 };
 
-function populateFormInput() {
-    const formStringValue = localStorage.getItem(FORM_STORAGE_KEY);
-    
-    if (formStringValue) {
-        const formObjectValue = JSON.parse(formStringValue);
-        for (const key in formObjectValue) {
-            formData[key] = formObjectValue[key];
-        }
-        refs.form.elements.email.value = formData.email ? formData['email'] : '';
-        refs.form.elements.message.value = formData.message ? formData['message'] : '';
-    }
+feedbackFormRef.addEventListener(
+  'input',
+  throttle(saveDataInLocaleStorage, 500)
+);
+window.addEventListener('DOMContentLoaded', fillFromStorage);
+feedbackFormRef.addEventListener('submit', handleSubmit);
+
+function saveDataInLocaleStorage(e) {
+  currentValueOfForm.email = email.value.trim();
+  currentValueOfForm.message = message.value.trim();
+  save(STORAGE_KEY, currentValueOfForm);
 }
+
+function fillFromStorage(e) {
+  const currentState = load(STORAGE_KEY);
+  if (currentState) {
+    email.value = currentState.email;
+    message.value = currentState.message;
+  }
+}
+
+function handleSubmit(ev) {
+  ev.preventDefault();
+  const valueEmail = ev.srcElement[0].value;
+  const valueMessage = ev.srcElement[1].value;
+  const getDataOnSubmit = {};
+
+  if (valueEmail === '' || valueMessage === '') {
+    alert('Незаповнені поля! Введіть дані!');
+    return;
+  } else {
+    getDataOnSubmit.email = valueEmail;
+    getDataOnSubmit.message = valueMessage;
+    console.log(getDataOnSubmit);
+    localStorage.removeItem(STORAGE_KEY);
+    feedbackFormRef.reset();
+  }
+}
+
+
